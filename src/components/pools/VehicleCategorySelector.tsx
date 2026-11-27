@@ -14,7 +14,7 @@ interface VehicleCategorySelectorProps {
   compact?: boolean;
 }
 
-export function VehicleCategorySelector({
+export const VehicleCategorySelector = React.memo(function VehicleCategorySelector({
   value,
   onChange,
   includeAllOption = false,
@@ -25,7 +25,7 @@ export function VehicleCategorySelector({
       className={cn(
         "grid gap-3.5",
         includeAllOption
-          ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6"
           : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
       )}
     >
@@ -34,43 +34,48 @@ export function VehicleCategorySelector({
           type="button"
           onClick={() => onChange("all")}
           className={cn(
-            "flex h-full flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2",
-            compact ? "min-h-[124px]" : "min-h-[172px]",
+            "box-border flex h-full w-full min-w-0 max-w-full flex-col justify-between overflow-hidden rounded-2xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2",
+            compact ? "min-h-[136px]" : "min-h-[188px]",
             value === "all"
               ? "border-[#173D32] bg-[#173D32] text-white shadow-sm ring-2 ring-[#173D32]/25"
               : "border-[#E4E8E2] bg-white text-[#242B31] hover:border-[#173D32]/45 hover:bg-[#F4F5F1]/60",
           )}
         >
-          <div className="flex w-full items-center justify-between">
-            <div
-              className={cn(
-                "flex h-12 w-12 items-center justify-center rounded-xl",
-                value === "all"
-                  ? "bg-white/10 text-[#D5A45B]"
-                  : "bg-[#F4F5F1] text-[#173D32]",
-              )}
-            >
-              <Truck className="h-6 w-6" />
+          <div className="flex w-full min-w-0 flex-col gap-2.5">
+            <div className="flex w-full min-w-0 justify-end">
+              <span
+                className={cn(
+                  "max-w-full break-words rounded-full px-2.5 py-0.5 text-right text-[11px] font-semibold leading-tight",
+                  value === "all"
+                    ? "bg-white/15 text-[#D5A45B]"
+                    : "bg-[#F4F5F1] text-[#718078]",
+                )}
+              >
+                350 kg – 35 Ton
+              </span>
             </div>
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                value === "all"
-                  ? "bg-white/15 text-[#D5A45B]"
-                  : "bg-[#F4F5F1] text-[#718078]",
-              )}
-            >
-              350 kg – 35 Ton
-            </span>
+            <div className="flex w-full min-w-0 items-center justify-center py-0.5">
+              <div
+                className={cn(
+                  "flex items-center justify-center rounded-xl",
+                  compact ? "h-11 w-11" : "h-13 w-13",
+                  value === "all"
+                    ? "bg-white/10 text-[#D5A45B]"
+                    : "bg-[#F4F5F1] text-[#173D32]",
+                )}
+              >
+                <Truck className="h-6 w-6" />
+              </div>
+            </div>
           </div>
-          <div className="mt-3">
-            <span className="block text-sm sm:text-base font-bold">
+          <div className="mt-3 min-w-0">
+            <span className="block break-words text-sm font-bold leading-snug sm:text-base">
               All Cargo Vehicles
             </span>
             {!compact && (
               <span
                 className={cn(
-                  "mt-1 block text-xs leading-relaxed",
+                  "mt-1 block break-words text-xs leading-relaxed",
                   value === "all" ? "text-white/80" : "text-[#718078]",
                 )}
               >
@@ -90,39 +95,47 @@ export function VehicleCategorySelector({
             onClick={() => onChange(cat.id)}
             aria-pressed={selected}
             className={cn(
-              "flex h-full flex-col justify-between rounded-2xl border p-4 sm:p-5 text-left transition focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2",
-              compact ? "min-h-[124px]" : "min-h-[172px]",
+              "box-border flex h-full w-full min-w-0 max-w-full flex-col justify-between overflow-hidden rounded-2xl border p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2",
+              compact ? "min-h-[136px]" : "min-h-[188px]",
               selected
                 ? "border-[#173D32] bg-[#173D32] text-white shadow-sm ring-2 ring-[#173D32]/25"
                 : "border-[#E4E8E2] bg-white text-[#242B31] hover:border-[#173D32]/45 hover:bg-[#F4F5F1]/60",
             )}
           >
-            <div className="flex w-full items-start justify-between gap-2">
-              <VehicleIcon
-                category={cat.id}
-                inverted={selected}
-                className={cn(compact ? "h-12 w-20" : "h-14 w-24 sm:h-16 sm:w-28")}
-              />
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
-                  selected
-                    ? "bg-white/15 text-[#D5A45B]"
-                    : "bg-[#F4F5F1] text-[#718078]",
-                )}
-              >
-                {cat.typicalRangeLabel}
-              </span>
+            <div className="flex w-full min-w-0 flex-col gap-2.5">
+              <div className="flex w-full min-w-0 justify-end">
+                <span
+                  className={cn(
+                    "max-w-full break-words rounded-full px-2.5 py-0.5 text-right text-[11px] font-semibold leading-tight",
+                    selected
+                      ? "bg-white/15 text-[#D5A45B]"
+                      : "bg-[#F4F5F1] text-[#718078]",
+                  )}
+                >
+                  {cat.typicalRangeLabel}
+                </span>
+              </div>
+
+              <div className="flex w-full min-w-0 items-center justify-center py-0.5">
+                <VehicleIcon
+                  category={cat.id}
+                  inverted={selected}
+                  className={cn(
+                    "max-w-full",
+                    compact ? "h-11 w-20" : "h-13 w-24",
+                  )}
+                />
+              </div>
             </div>
 
-            <div className="mt-3">
-              <span className="block text-sm sm:text-base font-bold">
+            <div className="mt-3 min-w-0">
+              <span className="block break-words text-sm font-bold leading-snug sm:text-base">
                 {cat.label}
               </span>
               {!compact && (
                 <span
                   className={cn(
-                    "mt-1 line-clamp-2 block text-xs leading-relaxed",
+                    "mt-1 line-clamp-2 block break-words text-xs leading-relaxed",
                     selected ? "text-white/80" : "text-[#718078]",
                   )}
                 >
@@ -135,4 +148,4 @@ export function VehicleCategorySelector({
       })}
     </div>
   );
-}
+});

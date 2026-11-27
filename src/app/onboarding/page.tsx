@@ -6,7 +6,7 @@ import { ProfileEditorForm } from "@/components/profile/ProfileEditorForm";
 import { getCurrentUserContext } from "@/lib/supabase/auth-helpers";
 
 export default async function OnboardingPage() {
-  const ctx = await getCurrentUserContext();
+  const ctx = await getCurrentUserContext({ includePrivateContact: true });
 
   if (!ctx.isConfigured) {
     return (

@@ -22,7 +22,7 @@ interface PoolCardProps {
   match?: PoolMatchResult;
 }
 
-export function PoolCard({ pool, match }: PoolCardProps) {
+export const PoolCard = React.memo(function PoolCard({ pool, match }: PoolCardProps) {
   const vehicleSpec = VEHICLE_CATEGORY_MAP[pool.vehicle_category];
   const pricingSpec = PRICING_MODE_MAP[pool.pricing_mode];
   const cap = computeCapacitySnapshot(
@@ -166,5 +166,5 @@ export function PoolCard({ pool, match }: PoolCardProps) {
       </div>
     </article>
   );
-}
+});
 

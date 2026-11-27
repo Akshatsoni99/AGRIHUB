@@ -18,13 +18,13 @@ export default async function FindPoolPage() {
       const { data } = await supabase
         .from("pools")
         .select(
-          "*, owner:profiles!pools_owner_id_fkey(id, full_name, business_name, city, state, verification_status), stops:pool_stops(*)",
+          "id, pool_code, owner_id, vehicle_category, total_capacity_kg, existing_occupied_kg, reserved_capacity_kg, available_capacity_kg, origin_name, origin_city, origin_state, origin_lat, origin_lng, destination_name, destination_city, destination_state, destination_lat, destination_lng, departure_date, departure_time, route_polyline, route_distance_meters, route_duration_seconds, route_source, main_cargo_category, cargo_description, permitted_cargo_categories, pricing_mode, asking_price, status, owner:profiles!pools_owner_id_fkey(id, full_name, business_name, city, state, verification_status), stops:pool_stops(id, pool_id, stop_order, location_name, city, state, lat, lng, estimated_time)",
         )
         .in("status", ["OPEN", "FULL"])
         .order("departure_date", { ascending: true })
         .limit(100);
 
-      pools = (data as PoolListing[]) || [];
+      pools = (data as unknown as PoolListing[]) || [];
     }
   }
 

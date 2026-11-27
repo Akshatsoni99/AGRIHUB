@@ -31,12 +31,13 @@ export default async function MyRequestsPage() {
     const { data } = await supabase
       .from("pool_requests")
       .select(
-        "*, pool:pools(id, pool_code, origin_name, destination_name, departure_date, departure_time), pool_owner:profiles!pool_requests_pool_owner_id_fkey(id, full_name, business_name)",
+        "id, pool_id, requester_id, pool_owner_id, required_capacity_kg, cargo_category, cargo_description, pickup_location, drop_location, proposed_price, pricing_note, agreed_capacity_kg, agreed_price, agreed_pickup_point, agreed_drop_point, status, created_at, pool:pools(id, pool_code, origin_name, destination_name, departure_date, departure_time), pool_owner:profiles!pool_requests_pool_owner_id_fkey(id, full_name, business_name)",
       )
       .eq("requester_id", ctx.user.id)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(50);
 
-    requests = (data as PoolRequest[]) || [];
+    requests = (data as unknown as PoolRequest[]) || [];
   }
 
   return (

@@ -34,12 +34,15 @@ export default async function MyDealsPage() {
     const { data: dealsData } = await supabase
       .from("deals")
       .select(
-        "*, pool:pools(id, pool_code, vehicle_id, origin_name, destination_name, departure_date, departure_time), owner:profiles!deals_owner_id_fkey(id, full_name, business_name), requester:profiles!deals_requester_id_fkey(id, full_name, business_name)",
+        "id, deal_code, pool_id, request_id, conversation_id, owner_id, requester_id, agreed_capacity_kg, agreed_price, pickup_point, drop_point, departure_time, special_conditions, status, capacity_released, confirmed_at, cancelled_at, cancellation_reason, pool:pools(id, pool_code, vehicle_id, origin_name, destination_name, departure_date, departure_time), owner:profiles!deals_owner_id_fkey(id, full_name, business_name), requester:profiles!deals_requester_id_fkey(id, full_name, business_name)",
       )
       .or(`owner_id.eq.${ctx.user.id},requester_id.eq.${ctx.user.id}`)
-      .order("confirmed_at", { ascending: false });
+      .order("confirmed_at", { ascending: false })
+      .limit(50);
 
-    const deals = (dealsData as (DealRecord & { pool?: { vehicle_id?: string } })[]) || [];
+    const deals =
+      (dealsData as unknown as (DealRecord & { pool?: { vehicle_id?: string } })[]) ||
+      [];
 
     if (deals.length > 0) {
       const counterpartyIds = Array.from(

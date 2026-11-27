@@ -34,6 +34,7 @@ export function MyPoolsClient({ initialPools }: MyPoolsClientProps) {
   const [editOccupied, setEditOccupied] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [closingId, setClosingId] = useState<string | null>(null);
 
   function startEdit(pool: PoolWithCounts) {
     setEditingId(pool.id);
@@ -100,16 +101,21 @@ export function MyPoolsClient({ initialPools }: MyPoolsClientProps) {
   async function handleClosePool(poolId: string) {
     const supabase = createSupabaseBrowserClient();
     if (!supabase) return;
-    const { error } = await supabase
-      .from("pools")
-      .update({ status: "CLOSED" })
-      .eq("id", poolId);
-    if (error) {
-      toast.error(error.message);
-      return;
+    setClosingId(poolId);
+    try {
+      const { error } = await supabase
+        .from("pools")
+        .update({ status: "CLOSED" })
+        .eq("id", poolId);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success("Pool closed to new requests");
+      router.refresh();
+    } finally {
+      setClosingId(null);
     }
-    toast.success("Pool closed to new requests");
-    router.refresh();
   }
 
   if (initialPools.length === 0) {
@@ -181,11 +187,12 @@ export function MyPoolsClient({ initialPools }: MyPoolsClientProps) {
                     </button>
                     <button
                       type="button"
+                      disabled={closingId === pool.id}
                       onClick={() => handleClosePool(pool.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#B83B3B]/30 bg-white px-3 py-1.5 text-xs font-semibold text-[#B83B3B] hover:bg-[#B83B3B]/10"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#B83B3B]/30 bg-white px-3 py-1.5 text-xs font-semibold text-[#B83B3B] hover:bg-[#B83B3B]/10 disabled:opacity-50"
                     >
                       <Lock className="h-3.5 w-3.5" />
-                      Close Pool
+                      {closingId === pool.id ? "Closing..." : "Close Pool"}
                     </button>
                   </>
                 )}

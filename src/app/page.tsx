@@ -168,16 +168,16 @@ export default function LandingPage() {
               <Link
                 key={cat.id}
                 href={`/truck-pool/find?vehicle=${cat.id}`}
-                className="agri-card group flex flex-col justify-between p-5 transition hover:border-[#173D32]/50 hover:shadow-md"
+                className="agri-card group box-border flex min-w-0 max-w-full flex-col justify-between overflow-hidden p-5 transition hover:border-[#173D32]/50 hover:shadow-md"
               >
-                <div>
+                <div className="min-w-0">
                   <div className="flex h-20 w-full items-center justify-center rounded-xl bg-[#F4F5F1] p-2.5 transition group-hover:bg-[#173D32]/5">
-                    <VehicleIcon category={cat.id} className="h-14 w-24" />
+                    <VehicleIcon category={cat.id} className="h-14 w-24 max-w-full" />
                   </div>
-                  <h3 className="mt-4 text-base font-bold text-[#242B31]">
+                  <h3 className="mt-4 break-words text-base font-bold text-[#242B31]">
                     {cat.label}
                   </h3>
-                  <p className="mt-1 text-xs font-semibold text-[#D5A45B]">
+                  <p className="mt-1 break-words text-xs font-semibold text-[#8A611E]">
                     Typical: {cat.typicalRangeLabel}
                   </p>
                   <p className="mt-2 text-xs leading-relaxed text-[#718078]">

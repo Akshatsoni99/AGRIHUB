@@ -31,12 +31,13 @@ export default async function MessagesPage() {
     const { data } = await supabase
       .from("conversations")
       .select(
-        "*, pool:pools(id, pool_code, origin_name, destination_name, departure_date), request:pool_requests(*), owner:profiles!conversations_owner_id_fkey(id, full_name, business_name), requester:profiles!conversations_requester_id_fkey(id, full_name, business_name)",
+        "id, pool_id, request_id, owner_id, requester_id, last_message_at, created_at, pool:pools(id, pool_code, origin_name, destination_name, departure_date), request:pool_requests(id, required_capacity_kg, cargo_category, cargo_description, pickup_location, drop_location, proposed_price, agreed_capacity_kg, agreed_price, agreed_pickup_point, agreed_drop_point, agreed_departure_time, agreed_conditions, owner_confirmed_terms, requester_confirmed_terms, terms_version, status), owner:profiles!conversations_owner_id_fkey(id, full_name, business_name), requester:profiles!conversations_requester_id_fkey(id, full_name, business_name)",
       )
       .or(`owner_id.eq.${ctx.user.id},requester_id.eq.${ctx.user.id}`)
-      .order("last_message_at", { ascending: false });
+      .order("last_message_at", { ascending: false })
+      .limit(50);
 
-    conversations = (data as Conversation[]) || [];
+    conversations = (data as unknown as Conversation[]) || [];
   }
 
   return (

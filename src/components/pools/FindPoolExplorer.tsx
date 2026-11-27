@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useDeferredValue, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -84,8 +84,13 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(12);
 
-  function resetFilters() {
+  const deferredStopQuery = useDeferredValue(stopQuery);
+  const deferredRequiredCapacity = useDeferredValue(requiredCapacity);
+  const deferredMaxPrice = useDeferredValue(maxPrice);
+
+  const resetFilters = useCallback(() => {
     setVehicleCategory("all");
     setOriginLoc({ name: "" });
     setDestLoc({ name: "" });
@@ -96,12 +101,13 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
     setStatusFilter("OPEN");
     setStopQuery("");
     setSortBy("best_match");
-  }
+    setVisibleCount(12);
+  }, []);
 
   const scoredAndFiltered = useMemo(() => {
-    const reqKg = Number(requiredCapacity) || 0;
-    const maxBudget = Number(maxPrice) || 0;
-    const stopNeedle = stopQuery.trim().toLowerCase();
+    const reqKg = Number(deferredRequiredCapacity) || 0;
+    const maxBudget = Number(deferredMaxPrice) || 0;
+    const stopNeedle = deferredStopQuery.trim().toLowerCase();
 
     const filtered = initialPools.filter((pool) => {
       if (statusFilter !== "all" && pool.status !== statusFilter) return false;
@@ -185,11 +191,11 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
     initialPools,
     statusFilter,
     vehicleCategory,
-    requiredCapacity,
+    deferredRequiredCapacity,
     cargoCategory,
     departureDate,
-    maxPrice,
-    stopQuery,
+    deferredMaxPrice,
+    deferredStopQuery,
     originLoc,
     destLoc,
     sortBy,
@@ -447,7 +453,7 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
               title="No matching truck pools found"
               description="Try widening your cargo weight, departure date, or route filters—or publish a new pool if you operate on this route."
               actionLabel="Reset Filters"
-              actionHref="/truck-pool/find"
+              onAction={resetFilters}
               secondaryLabel="Create a Pool"
               secondaryHref={
                 vehicleCategory === "all"
@@ -462,23 +468,36 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
               onSelectPool={setSelectedPoolId}
             />
           ) : (
-            <div className="grid gap-5 md:grid-cols-2">
-              {scoredAndFiltered.map(({ pool, match }) => {
-                const isSelected = selectedPoolId === pool.id;
-                return (
-                  <div
-                    key={pool.id}
-                    onClick={() => setSelectedPoolId(pool.id)}
-                    className={
-                      isSelected
-                        ? "rounded-xl ring-2 ring-[#173D32] ring-offset-2"
-                        : undefined
-                    }
+            <div className="space-y-5">
+              <div className="grid gap-5 md:grid-cols-2">
+                {scoredAndFiltered.slice(0, visibleCount).map(({ pool, match }) => {
+                  const isSelected = selectedPoolId === pool.id;
+                  return (
+                    <div
+                      key={pool.id}
+                      onClick={() => setSelectedPoolId(pool.id)}
+                      className={
+                        isSelected
+                          ? "rounded-xl ring-2 ring-[#173D32] ring-offset-2"
+                          : undefined
+                      }
+                    >
+                      <PoolCard pool={pool} match={match} />
+                    </div>
+                  );
+                })}
+              </div>
+              {scoredAndFiltered.length > visibleCount && (
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((prev) => prev + 12)}
+                    className="rounded-lg border border-[#E4E8E2] bg-white px-5 py-2.5 text-xs font-semibold text-[#173D32] shadow-xs transition hover:bg-[#F4F5F1]"
                   >
-                    <PoolCard pool={pool} match={match} />
-                  </div>
-                );
-              })}
+                    Show more pools ({scoredAndFiltered.length - visibleCount} remaining)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

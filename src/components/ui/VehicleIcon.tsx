@@ -12,7 +12,7 @@ interface VehicleIconProps {
  * Custom vector illustrations for the five AGRIHUB Indian cargo vehicle categories.
  * Shares one consistent side-profile art direction in AGRIHUB brand colors.
  */
-export function VehicleIcon({
+export const VehicleIcon = React.memo(function VehicleIcon({
   category,
   className,
   inverted = false,
@@ -299,4 +299,4 @@ export function VehicleIcon({
         </svg>
       );
   }
-}
+});

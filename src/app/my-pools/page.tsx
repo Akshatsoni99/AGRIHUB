@@ -34,13 +34,17 @@ export default async function MyPoolsPage() {
     const [{ data: pools }, { data: reqs }, { data: deals }] = await Promise.all([
       supabase
         .from("pools")
-        .select("*")
+        .select(
+          "id, pool_code, vehicle_category, total_capacity_kg, existing_occupied_kg, reserved_capacity_kg, available_capacity_kg, origin_name, destination_name, departure_date, departure_time, asking_price, cargo_description, status",
+        )
         .eq("owner_id", ctx.user.id)
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .limit(50),
       supabase
         .from("pool_requests")
         .select("pool_id, status")
-        .eq("pool_owner_id", ctx.user.id),
+        .eq("pool_owner_id", ctx.user.id)
+        .eq("status", "PENDING"),
       supabase
         .from("deals")
         .select("pool_id, status")

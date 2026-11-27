@@ -20,14 +20,14 @@ export default async function TruckPoolPage() {
       const { data } = await supabase
         .from("pools")
         .select(
-          "*, owner:profiles!pools_owner_id_fkey(id, full_name, business_name, city, state, verification_status), stops:pool_stops(*)",
+          "id, pool_code, owner_id, vehicle_category, total_capacity_kg, existing_occupied_kg, reserved_capacity_kg, available_capacity_kg, origin_name, destination_name, route_distance_meters, route_duration_seconds, route_source, main_cargo_category, cargo_description, pricing_mode, asking_price, departure_date, departure_time, status, owner:profiles!pools_owner_id_fkey(id, full_name, business_name, city, state, verification_status), stops:pool_stops(id, pool_id, stop_order, location_name, city, state, lat, lng, estimated_time)",
         )
         .eq("status", "OPEN")
         .gt("available_capacity_kg", 0)
         .order("departure_date", { ascending: true })
         .limit(6);
 
-      recentOpenPools = (data as PoolListing[]) || [];
+      recentOpenPools = (data as unknown as PoolListing[]) || [];
     }
   }
 

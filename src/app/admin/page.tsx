@@ -64,32 +64,38 @@ export default async function AdminPage() {
     const [usersRes, poolsRes, reportsRes, dealsRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("*")
+        .select(
+          "id, full_name, business_name, city, state, account_type, verification_status, is_admin, is_suspended, onboarding_completed, created_at",
+        )
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
         .from("pools")
-        .select("*")
+        .select(
+          "id, pool_code, owner_id, vehicle_category, total_capacity_kg, available_capacity_kg, origin_name, destination_name, departure_date, departure_time, asking_price, status, is_flagged, moderation_note, created_at",
+        )
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
         .from("pool_reports")
         .select(
-          "*, pool:pools(id, pool_code, origin_name, destination_name, status)",
+          "id, pool_id, reporter_id, reason, details, status, created_at, pool:pools(id, pool_code, origin_name, destination_name, status)",
         )
         .order("created_at", { ascending: false })
         .limit(100),
       supabase
         .from("deals")
-        .select("*")
+        .select(
+          "id, deal_code, pool_id, agreed_capacity_kg, agreed_price, pickup_point, drop_point, status, confirmed_at",
+        )
         .order("confirmed_at", { ascending: false })
         .limit(100),
     ]);
 
-    users = (usersRes.data as PublicProfile[]) || [];
-    pools = (poolsRes.data as PoolListing[]) || [];
-    reports = (reportsRes.data as PoolReportItem[]) || [];
-    deals = (dealsRes.data as DealRecord[]) || [];
+    users = (usersRes.data as unknown as PublicProfile[]) || [];
+    pools = (poolsRes.data as unknown as PoolListing[]) || [];
+    reports = (reportsRes.data as unknown as PoolReportItem[]) || [];
+    deals = (dealsRes.data as unknown as DealRecord[]) || [];
   }
 
   return (

@@ -11,7 +11,7 @@ import { formatShortDate } from "@/lib/utils";
 import type { ReviewRecord } from "@/types/domain";
 
 export default async function ProfilePage() {
-  const ctx = await getCurrentUserContext();
+  const ctx = await getCurrentUserContext({ includePrivateContact: true });
 
   if (!ctx.isConfigured) {
     return (

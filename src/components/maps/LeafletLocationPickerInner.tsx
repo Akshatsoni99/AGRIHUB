@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import "leaflet/dist/leaflet.css";
 import {
   MapContainer,
   Marker,

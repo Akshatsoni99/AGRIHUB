@@ -165,11 +165,11 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
     return items;
   }, [origin, destination, stops]);
 
-  function handleCategorySelect(next: VehicleCategory | "all") {
+  const handleCategorySelect = useCallback((next: VehicleCategory | "all") => {
     if (next === "all") return;
     setVehicleCategory(next);
     setTotalCapacityKg(String(VEHICLE_CATEGORY_MAP[next].suggestedCapacityKg));
-  }
+  }, []);
 
   function togglePermittedCargo(cat: CargoCategory) {
     setPermittedCategories((prev) =>

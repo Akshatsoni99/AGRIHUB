@@ -76,14 +76,14 @@ export default async function DashboardPage() {
     ] = await Promise.all([
       supabase
         .from("pools")
-        .select("*")
+        .select("id, status, available_capacity_kg")
         .eq("owner_id", userId)
         .order("created_at", { ascending: false })
         .limit(10),
       supabase
         .from("pool_requests")
         .select(
-          "*, pool:pools(id, pool_code, origin_name, destination_name), requester:profiles!pool_requests_requester_id_fkey(id, full_name, business_name, city)",
+          "id, pool_id, required_capacity_kg, pickup_location, drop_location, proposed_price, status, pool:pools(id, pool_code, origin_name, destination_name), requester:profiles!pool_requests_requester_id_fkey(id, full_name, business_name, city)",
         )
         .eq("pool_owner_id", userId)
         .order("created_at", { ascending: false })
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
       supabase
         .from("pool_requests")
         .select(
-          "*, pool:pools(id, pool_code, origin_name, destination_name, departure_date)",
+          "id, pool_id, required_capacity_kg, proposed_price, status, pool:pools(id, pool_code, origin_name, destination_name, departure_date)",
         )
         .eq("requester_id", userId)
         .order("created_at", { ascending: false })
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
       supabase
         .from("deals")
         .select(
-          "*, pool:pools(id, pool_code, origin_name, destination_name, departure_date)",
+          "id, deal_code, agreed_capacity_kg, agreed_price, pickup_point, drop_point, status, pool:pools(id, pool_code, origin_name, destination_name, departure_date)",
         )
         .or(`owner_id.eq.${userId},requester_id.eq.${userId}`)
         .order("confirmed_at", { ascending: false })
@@ -107,25 +107,25 @@ export default async function DashboardPage() {
       supabase
         .from("conversations")
         .select(
-          "*, pool:pools(id, pool_code, origin_name, destination_name), owner:profiles!conversations_owner_id_fkey(id, full_name), requester:profiles!conversations_requester_id_fkey(id, full_name)",
+          "id, owner_id, last_message_at, pool:pools(id, pool_code, origin_name, destination_name), owner:profiles!conversations_owner_id_fkey(id, full_name), requester:profiles!conversations_requester_id_fkey(id, full_name)",
         )
         .or(`owner_id.eq.${userId},requester_id.eq.${userId}`)
         .order("last_message_at", { ascending: false })
         .limit(5),
       supabase
         .from("notifications")
-        .select("*")
+        .select("id, title, body, link, is_read")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(6),
     ]);
 
-    myPools = (poolsRes.data as PoolListing[]) || [];
-    incomingRequests = (incomingRes.data as PoolRequest[]) || [];
-    outgoingRequests = (outgoingRes.data as PoolRequest[]) || [];
-    myDeals = (dealsRes.data as DealRecord[]) || [];
-    recentConversations = (convsRes.data as Conversation[]) || [];
-    recentNotifications = (notifRes.data as NotificationItem[]) || [];
+    myPools = (poolsRes.data as unknown as PoolListing[]) || [];
+    incomingRequests = (incomingRes.data as unknown as PoolRequest[]) || [];
+    outgoingRequests = (outgoingRes.data as unknown as PoolRequest[]) || [];
+    myDeals = (dealsRes.data as unknown as DealRecord[]) || [];
+    recentConversations = (convsRes.data as unknown as Conversation[]) || [];
+    recentNotifications = (notifRes.data as unknown as NotificationItem[]) || [];
   }
 
   const activePools = myPools.filter((p) => p.status === "OPEN");

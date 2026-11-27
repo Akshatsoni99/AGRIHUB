@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseConfig } from "@/lib/env";
@@ -11,7 +12,77 @@ export interface CurrentUserContext {
   unreadNotifications: number;
 }
 
-export async function getCurrentUserContext(): Promise<CurrentUserContext> {
+const PUBLIC_PROFILE_COLUMNS =
+  "id, full_name, business_name, city, state, account_type, avatar_url, verification_status, is_admin, is_suspended, onboarding_completed, created_at";
+
+const getRequestAuthUser = cache(async () => {
+  const cookieStore = await cookies();
+  const hasSessionCookie = cookieStore
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-"));
+  if (!hasSessionCookie) {
+    return null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return null;
+  }
+
+  return { id: user.id, email: user.email };
+});
+
+const getRequestProfileAndUnread = cache(async (userId: string) => {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return { profile: null, unreadNotifications: 0 };
+  }
+
+  const [{ data: profile }, { count: unreadCount }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select(PUBLIC_PROFILE_COLUMNS)
+      .eq("id", userId)
+      .maybeSingle(),
+    supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_read", false),
+  ]);
+
+  return {
+    profile: (profile as PublicProfile | null) ?? null,
+    unreadNotifications: unreadCount ?? 0,
+  };
+});
+
+const getRequestPrivateContact = cache(async (userId: string) => {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data } = await supabase
+    .from("profile_private_contacts")
+    .select("user_id, email, mobile_number")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return (data as PrivateContact | null) ?? null;
+});
+
+export async function getCurrentUserContext(options?: {
+  includePrivateContact?: boolean;
+}): Promise<CurrentUserContext> {
   // Opt into per-request dynamic rendering so session state and env configuration are never cached statically.
   await cookies();
 
@@ -26,21 +97,7 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext> {
     };
   }
 
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return {
-      isConfigured: false,
-      user: null,
-      profile: null,
-      privateContact: null,
-      unreadNotifications: 0,
-    };
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getRequestAuthUser();
   if (!user) {
     return {
       isConfigured: true,
@@ -51,27 +108,21 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext> {
     };
   }
 
-  const [{ data: profile }, { data: privateContact }, { count: unreadCount }] =
-    await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
-      supabase
-        .from("profile_private_contacts")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false),
-    ]);
+  const includePrivateContact = options?.includePrivateContact ?? false;
+
+  const [{ profile, unreadNotifications }, privateContact] = await Promise.all([
+    getRequestProfileAndUnread(user.id),
+    includePrivateContact
+      ? getRequestPrivateContact(user.id)
+      : Promise.resolve(null),
+  ]);
 
   return {
     isConfigured: true,
-    user: { id: user.id, email: user.email },
-    profile: (profile as PublicProfile | null) ?? null,
-    privateContact: (privateContact as PrivateContact | null) ?? null,
-    unreadNotifications: unreadCount ?? 0,
+    user,
+    profile,
+    privateContact,
+    unreadNotifications,
   };
 }
 
