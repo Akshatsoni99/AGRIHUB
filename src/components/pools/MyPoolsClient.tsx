@@ -132,10 +132,10 @@ export function MyPoolsClient({ initialPools }: MyPoolsClientProps) {
           <div key={pool.id} className="agri-card p-5">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#173D32]/10 text-[#173D32]">
+                <div className="flex h-12 w-18 shrink-0 items-center justify-center rounded-xl border border-[#E4E8E2] bg-[#F4F5F1] px-1.5 py-1">
                   <VehicleIcon
                     category={pool.vehicle_category}
-                    className="h-5 w-5"
+                    className="h-9 w-15"
                   />
                 </div>
                 <div>

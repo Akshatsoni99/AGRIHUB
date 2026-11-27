@@ -64,7 +64,7 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
 }
 
 /**
- * Decodes an encoded Google polyline into LatLng coordinates for geometric
+ * Decodes an encoded polyline5 string into LatLng coordinates for geometric
  * point-to-route proximity checks.
  */
 export function decodeEncodedPolyline(encoded: string): LatLng[] {
@@ -399,7 +399,7 @@ export function evaluatePoolMatch(
       routeNarrative = `Partial geographic corridor match (${Math.round(pickupNearest.distanceKm)} km from pickup, ${Math.round(destNearest.distanceKm)} km from drop).`;
     }
   } else {
-    // Clearly identified manual text/city fallback mode (no Google Maps coordinates available for query/pool)
+    // Clearly identified manual text/city fallback mode (no geographic coordinates available for query/pool)
     const queryOrigin = criteria.origin?.trim() || "";
     const queryDest = criteria.destination?.trim() || "";
 
@@ -511,7 +511,7 @@ export function evaluatePoolMatch(
     } else if (queryOrigin && queryDest && originMatchIdx >= 0 && destMatchIdx >= 0 && destMatchIdx <= originMatchIdx) {
       routeNarrative = `Direction mismatch (manual check): ${pool.origin_name}-to-${pool.destination_name} runs in the opposite order of ${queryOrigin} to ${queryDest}.`;
     } else if (queryOrigin || queryDest) {
-      routeNarrative = `Partial city/stop match (manual fallback) on ${pool.origin_name}-to-${pool.destination_name}. Configure Google Maps coordinates for geographic corridor verification.`;
+      routeNarrative = `Partial city/stop match (manual fallback) on ${pool.origin_name}-to-${pool.destination_name}. Select locations via map or Nominatim search for geographic corridor verification.`;
     }
   }
 

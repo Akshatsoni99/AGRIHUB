@@ -494,6 +494,8 @@ export function PoolDetailActions({
                 id="req-pickup"
                 label="Pickup Location *"
                 value={pickupLoc.name}
+                selectedLat={pickupLoc.lat}
+                selectedLng={pickupLoc.lng}
                 required
                 onChange={setPickupLoc}
               />
@@ -501,6 +503,8 @@ export function PoolDetailActions({
                 id="req-drop"
                 label="Drop Location *"
                 value={dropLoc.name}
+                selectedLat={dropLoc.lat}
+                selectedLng={dropLoc.lng}
                 required
                 onChange={setDropLoc}
               />

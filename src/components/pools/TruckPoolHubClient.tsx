@@ -40,20 +40,20 @@ export function TruckPoolHubClient() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-3.5 sm:flex-row">
             <Link
               href={createHref}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#173D32] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#244638]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#173D32] px-6 py-3.5 text-base font-bold text-white shadow-sm transition hover:bg-[#244638] focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2"
             >
-              <PlusCircle className="h-4 w-4" />
+              <PlusCircle className="h-5 w-5" />
               CREATE POOL
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
               href={findHref}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#173D32] bg-white px-5 py-3 text-sm font-semibold text-[#173D32] transition hover:bg-[#F4F5F1]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#173D32] bg-white px-6 py-3.5 text-base font-bold text-[#173D32] shadow-sm transition hover:bg-[#F4F5F1] focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-5 w-5" />
               FIND POOL
             </Link>
           </div>

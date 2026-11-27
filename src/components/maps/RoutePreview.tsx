@@ -9,7 +9,7 @@ interface RoutePreviewProps {
   stops?: PoolStop[];
   distanceMeters?: number | null;
   durationSeconds?: number | null;
-  routeSource?: "google_routes" | "manual";
+  routeSource?: "osrm" | "google_routes" | "manual";
 }
 
 export function RoutePreview({
@@ -18,7 +18,6 @@ export function RoutePreview({
   stops = [],
   distanceMeters,
   durationSeconds,
-  routeSource = "manual",
 }: RoutePreviewProps) {
   const distanceLabel = formatDistanceKm(distanceMeters);
   const durationLabel = formatDuration(durationSeconds);
@@ -43,7 +42,7 @@ export function RoutePreview({
 
         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#718078]">
           <Navigation className="h-3 w-3 text-[#D5A45B]" />
-          {routeSource === "google_routes" && distanceLabel
+          {distanceLabel
             ? `${distanceLabel}${durationLabel ? ` • ${durationLabel}` : ""}`
             : "Manual route"}
         </span>
@@ -61,4 +60,3 @@ export function RoutePreview({
     </div>
   );
 }
-

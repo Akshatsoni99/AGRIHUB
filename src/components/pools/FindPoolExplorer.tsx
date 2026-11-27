@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Filter,
+  LayoutList,
+  Map as MapIcon,
   PlusCircle,
   RotateCcw,
   Search,
@@ -13,6 +15,7 @@ import {
 } from "lucide-react";
 import { VehicleCategorySelector } from "@/components/pools/VehicleCategorySelector";
 import { PoolCard } from "@/components/pools/PoolCard";
+import { FindPoolsMap } from "@/components/maps/FindPoolsMap";
 import {
   LocationAutocomplete,
   type SelectedLocation,
@@ -78,6 +81,8 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
   const [statusFilter, setStatusFilter] = useState<PoolStatus | "all">("OPEN");
   const [stopQuery, setStopQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortOption>("best_match");
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [selectedPoolId, setSelectedPoolId] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   function resetFilters() {
@@ -141,18 +146,18 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
       pool,
       match: hasSearchContext
         ? evaluatePoolMatch(pool, {
-            origin: originLoc.name,
-            originLat: originLoc.lat,
-            originLng: originLoc.lng,
-            destination: destLoc.name,
-            destinationLat: destLoc.lat,
-            destinationLng: destLoc.lng,
-            vehicleCategory,
-            requiredCapacityKg: reqKg > 0 ? reqKg : undefined,
-            departureDate: departureDate || undefined,
-            cargoCategory,
-            maxPrice: maxBudget > 0 ? maxBudget : undefined,
-          })
+          origin: originLoc.name,
+          originLat: originLoc.lat,
+          originLng: originLoc.lng,
+          destination: destLoc.name,
+          destinationLat: destLoc.lat,
+          destinationLng: destLoc.lng,
+          vehicleCategory,
+          requiredCapacityKg: reqKg > 0 ? reqKg : undefined,
+          departureDate: departureDate || undefined,
+          cargoCategory,
+          maxPrice: maxBudget > 0 ? maxBudget : undefined,
+        })
         : undefined,
     }));
 
@@ -211,6 +216,8 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
         id="find-origin"
         label="Pickup / Origin"
         value={originLoc.name}
+        selectedLat={originLoc.lat}
+        selectedLng={originLoc.lng}
         placeholder="e.g. Jaipur, Nashik..."
         onChange={setOriginLoc}
       />
@@ -219,6 +226,8 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
         id="find-destination"
         label="Drop / Destination"
         value={destLoc.name}
+        selectedLat={destLoc.lat}
+        selectedLng={destLoc.lng}
         placeholder="e.g. Ajmer, Pune..."
         onChange={setDestLoc}
       />
@@ -349,9 +358,9 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
         compact
       />
 
-      {/* Sort & Mobile Filter Trigger Bar */}
+      {/* Sort, View Mode Toggle & Mobile Filter Trigger Bar */}
       <div className="agri-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
@@ -369,28 +378,61 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label
-            htmlFor="sort-pools"
-            className="text-xs font-semibold text-[#718078]"
+        <div className="flex flex-wrap items-center gap-3">
+          <div
+            className="inline-flex rounded-lg border border-[#E4E8E2] bg-[#F4F5F1] p-0.5"
+            role="group"
+            aria-label="Results view mode"
           >
-            Sort:
-          </label>
-          <select
-            id="sort-pools"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="rounded-lg border border-[#E4E8E2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#242B31]"
-          >
-            <option value="best_match">Best route match</option>
-            <option value="lowest_price">Lowest contribution</option>
-            <option value="earliest_departure">Earliest departure</option>
-            <option value="highest_capacity">Highest available capacity</option>
-          </select>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              aria-pressed={viewMode === "list"}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${viewMode === "list"
+                  ? "bg-[#173D32] text-white shadow-xs"
+                  : "text-[#242B31] hover:text-[#173D32]"
+                }`}
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              LIST VIEW
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("map")}
+              aria-pressed={viewMode === "map"}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${viewMode === "map"
+                  ? "bg-[#173D32] text-white shadow-xs"
+                  : "text-[#242B31] hover:text-[#173D32]"
+                }`}
+            >
+              <MapIcon className="h-3.5 w-3.5" />
+              MAP VIEW
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="sort-pools"
+              className="text-xs font-semibold text-[#718078]"
+            >
+              Sort:
+            </label>
+            <select
+              id="sort-pools"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="rounded-lg border border-[#E4E8E2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#242B31]"
+            >
+              <option value="best_match">Best route match</option>
+              <option value="lowest_price">Lowest contribution</option>
+              <option value="earliest_departure">Earliest departure</option>
+              <option value="highest_capacity">Highest available capacity</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Main Split: Desktop Sidebar + Pool Results */}
+      {/* Main Split: Desktop Sidebar + Pool Results (List or Map) */}
       <div className="grid gap-6 lg:grid-cols-12">
         <aside className="hidden lg:col-span-3 lg:block">
           <div className="agri-card sticky top-20 p-5">
@@ -413,11 +455,30 @@ export function FindPoolExplorer({ initialPools }: FindPoolExplorerProps) {
                   : `/truck-pool/create?vehicle=${vehicleCategory}`
               }
             />
+          ) : viewMode === "map" ? (
+            <FindPoolsMap
+              items={scoredAndFiltered}
+              selectedPoolId={selectedPoolId}
+              onSelectPool={setSelectedPoolId}
+            />
           ) : (
             <div className="grid gap-5 md:grid-cols-2">
-              {scoredAndFiltered.map(({ pool, match }) => (
-                <PoolCard key={pool.id} pool={pool} match={match} />
-              ))}
+              {scoredAndFiltered.map(({ pool, match }) => {
+                const isSelected = selectedPoolId === pool.id;
+                return (
+                  <div
+                    key={pool.id}
+                    onClick={() => setSelectedPoolId(pool.id)}
+                    className={
+                      isSelected
+                        ? "rounded-xl ring-2 ring-[#173D32] ring-offset-2"
+                        : undefined
+                    }
+                  >
+                    <PoolCard pool={pool} match={match} />
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

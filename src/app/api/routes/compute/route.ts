@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getGoogleMapsRoutesServerKey } from "@/lib/env";
+import {
+  encodePolyline,
+  isValidCoordinatePair,
+} from "@/lib/maps/routing-utils";
 
 const waypointSchema = z.object({
-  address: z.string().trim().min(2),
-  lat: z.number().min(-90).max(90).optional().nullable(),
-  lng: z.number().min(-180).max(180).optional().nullable(),
+  address: z.string().trim().min(1).optional(),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
 });
 
 const computeRouteInputSchema = z.object({
@@ -14,113 +17,176 @@ const computeRouteInputSchema = z.object({
   intermediates: z.array(waypointSchema).max(8).default([]),
 });
 
-function toGoogleWaypoint(wp: z.infer<typeof waypointSchema>) {
-  if (wp.lat != null && wp.lng != null) {
-    return {
-      location: {
-        latLng: {
-          latitude: wp.lat,
-          longitude: wp.lng,
-        },
-      },
-    };
-  }
-  return { address: wp.address };
+interface CachedRoutePayload {
+  expiresAt: number;
+  payload: {
+    routeSource: "osrm";
+    distanceMeters: number;
+    durationSeconds: number;
+    encodedPolyline: string;
+    coordinates: [number, number][];
+  };
 }
+
+const ROUTE_CACHE_TTL_MS = 30 * 60 * 1000;
+const routeCache = new Map<string, CachedRoutePayload>();
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = computeRouteInputSchema.safeParse(body);
+
     if (!parsed.success) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message || "Invalid route waypoints" },
+        {
+          routeFound: false,
+          routeSource: "manual",
+          error:
+            "Select valid origin and destination coordinates (via search or map picker) to calculate a road route.",
+        },
         { status: 400 },
       );
     }
 
-    const serverKey = getGoogleMapsRoutesServerKey();
-    if (!serverKey) {
+    const waypoints = [
+      parsed.data.origin,
+      ...parsed.data.intermediates,
+      parsed.data.destination,
+    ];
+
+    if (waypoints.some((wp) => !isValidCoordinatePair(wp.lat, wp.lng))) {
+      return NextResponse.json(
+        {
+          routeFound: false,
+          routeSource: "manual",
+          error: "One or more coordinates are out of valid latitude/longitude bounds.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // OSRM requires exact longitude,latitude order
+    const coordString = waypoints
+      .map((wp) => `${wp.lng.toFixed(5)},${wp.lat.toFixed(5)}`)
+      .join(";");
+
+    const cached = routeCache.get(coordString);
+    if (cached && cached.expiresAt > Date.now()) {
       return NextResponse.json({
-        configured: false,
-        routeSource: "manual",
-        message:
-          "GOOGLE_MAPS_ROUTES_API_KEY is not configured. Continuing with manual route coordinates.",
+        routeFound: true,
+        cached: true,
+        ...cached.payload,
       });
     }
 
-    const payload: Record<string, unknown> = {
-      origin: toGoogleWaypoint(parsed.data.origin),
-      destination: toGoogleWaypoint(parsed.data.destination),
-      travelMode: "DRIVE",
-      routingPreference: "TRAFFIC_AWARE",
-    };
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson&steps=false`;
 
-    if (parsed.data.intermediates.length > 0) {
-      payload.intermediates = parsed.data.intermediates.map(toGoogleWaypoint);
-    }
-
-    const res = await fetch(
-      "https://routes.googleapis.com/directions/v2:computeRoutes",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": serverKey,
-          "X-Goog-FieldMask":
-            "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline",
-        },
-        body: JSON.stringify(payload),
-        cache: "no-store",
+    const res = await fetch(osrmUrl, {
+      headers: {
+        "User-Agent": "AGRIHUB-Logistics-Platform/1.0",
+        Accept: "application/json",
       },
-    );
+      signal: AbortSignal.timeout(9000),
+      cache: "no-store",
+    });
 
     if (!res.ok) {
-      const text = await res.text();
       return NextResponse.json(
         {
-          configured: true,
+          routeFound: false,
           routeSource: "manual",
-          error: `Google Routes API returned ${res.status}`,
-          detail: text.slice(0, 300),
+          unavailable: true,
+          error: `Public OSRM routing service returned status ${res.status}. Please try again shortly.`,
         },
         { status: 502 },
       );
     }
 
     const data = (await res.json()) as {
+      code?: string;
+      message?: string;
       routes?: {
-        distanceMeters?: number;
-        duration?: string;
-        polyline?: { encodedPolyline?: string };
+        distance?: number;
+        duration?: number;
+        geometry?: {
+          type?: string;
+          coordinates?: [number, number][];
+        };
       }[];
     };
 
-    const route = data.routes?.[0];
-    if (!route) {
+    if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
       return NextResponse.json({
-        configured: true,
+        routeFound: false,
         routeSource: "manual",
-        error: "No drivable route found between these waypoints.",
+        error:
+          data.message ||
+          "No drivable road route was found between the selected points.",
       });
     }
 
-    const durationSeconds = route.duration
-      ? parseInt(route.duration.replace("s", ""), 10)
-      : null;
+    const route = data.routes[0];
+    const geoJsonCoords = route.geometry?.coordinates;
+    if (!Array.isArray(geoJsonCoords) || geoJsonCoords.length < 2) {
+      return NextResponse.json({
+        routeFound: false,
+        routeSource: "manual",
+        error: "OSRM returned an incomplete road geometry.",
+      });
+    }
+
+    // Convert OSRM [lng, lat] GeoJSON coordinates to Leaflet [lat, lng] tuples
+    const latLngPairs: [number, number][] = geoJsonCoords
+      .filter(
+        (pair) =>
+          Array.isArray(pair) &&
+          pair.length >= 2 &&
+          isValidCoordinatePair(pair[1], pair[0]),
+      )
+      .map((pair) => [pair[1], pair[0]]);
+
+    if (latLngPairs.length < 2) {
+      return NextResponse.json({
+        routeFound: false,
+        routeSource: "manual",
+        error: "OSRM route geometry contained invalid coordinates.",
+      });
+    }
+
+    const encodedPolyline = encodePolyline(
+      latLngPairs.map(([lat, lng]) => ({ lat, lng })),
+    );
+
+    const distanceMeters = Math.max(0, Math.round(route.distance ?? 0));
+    const durationSeconds = Math.max(0, Math.round(route.duration ?? 0));
+
+    const payload = {
+      routeSource: "osrm" as const,
+      distanceMeters,
+      durationSeconds,
+      encodedPolyline,
+      coordinates: latLngPairs,
+    };
+
+    routeCache.set(coordString, {
+      expiresAt: Date.now() + ROUTE_CACHE_TTL_MS,
+      payload,
+    });
 
     return NextResponse.json({
-      configured: true,
-      routeSource: "google_routes",
-      distanceMeters: route.distanceMeters ?? null,
-      durationSeconds: Number.isFinite(durationSeconds) ? durationSeconds : null,
-      encodedPolyline: route.polyline?.encodedPolyline ?? null,
+      routeFound: true,
+      ...payload,
     });
   } catch {
     return NextResponse.json(
-      { error: "Failed to process route request." },
-      { status: 500 },
+      {
+        routeFound: false,
+        routeSource: "manual",
+        unavailable: true,
+        error:
+          "Public OSRM routing server is temporarily unreachable. Coordinates are saved; you can retry road calculation later.",
+      },
+      { status: 503 },
     );
   }
 }
-

@@ -5,7 +5,8 @@ import { formatDistanceKm, formatDuration } from "@/lib/utils";
 interface RouteSummaryProps {
   distanceMeters?: number | null;
   durationSeconds?: number | null;
-  routeSource: "google_routes" | "manual";
+  routeSource: "osrm" | "google_routes" | "manual";
+  hasRoadPolyline?: boolean;
   stopCount: number;
 }
 
@@ -13,18 +14,21 @@ export function RouteSummary({
   distanceMeters,
   durationSeconds,
   routeSource,
+  hasRoadPolyline = false,
   stopCount,
 }: RouteSummaryProps) {
   const distanceLabel = formatDistanceKm(distanceMeters);
   const durationLabel = formatDuration(durationSeconds);
+  const isRoadVerified =
+    routeSource === "osrm" || (hasRoadPolyline && Boolean(distanceLabel));
 
   return (
     <div className="flex flex-wrap items-center gap-4 rounded-lg border border-[#E4E8E2] bg-white px-4 py-3 text-xs">
       <div className="flex items-center gap-1.5 font-semibold text-[#173D32]">
         <Route className="h-4 w-4 text-[#D5A45B]" />
         <span>
-          {routeSource === "google_routes"
-            ? "Google Routes Verified"
+          {isRoadVerified
+            ? "Road Route Calculated (OSRM)"
             : "Manual Corridor Entry"}
         </span>
       </div>
@@ -49,4 +53,3 @@ export function RouteSummary({
     </div>
   );
 }
-

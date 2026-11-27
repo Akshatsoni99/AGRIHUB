@@ -160,11 +160,12 @@ export default async function PoolDetailPage({
             {/* Route & Map Card */}
             <div className="agri-card space-y-4 p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#173D32] text-white">
+                <div className="flex items-center gap-3.5">
+                  <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-xl bg-[#173D32] px-2 py-1.5">
                     <VehicleIcon
                       category={pool.vehicle_category}
-                      className="h-6 w-6 text-[#D5A45B]"
+                      inverted
+                      className="h-10 w-16"
                     />
                   </div>
                   <div>
@@ -184,6 +185,7 @@ export default async function PoolDetailPage({
                 distanceMeters={pool.route_distance_meters}
                 durationSeconds={pool.route_duration_seconds}
                 routeSource={pool.route_source}
+                hasRoadPolyline={Boolean(pool.route_polyline)}
                 stopCount={sortedStops.length}
               />
 

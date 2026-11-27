@@ -86,7 +86,7 @@ export const createPoolSchema = z
     route_polyline: z.string().optional().nullable(),
     route_distance_meters: z.number().int().nonnegative().optional().nullable(),
     route_duration_seconds: z.number().int().nonnegative().optional().nullable(),
-    route_source: z.enum(["google_routes", "manual"]).default("manual"),
+    route_source: z.enum(["osrm", "google_routes", "manual"]).default("manual"),
 
     main_cargo_category: cargoCategorySchema,
     cargo_description: z

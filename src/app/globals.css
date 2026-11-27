@@ -1,6 +1,7 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
-@theme inline {
+:root {
   --color-forest: #173D32;
   --color-deep-green: #244638;
   --color-ivory: #F4F5F1;
@@ -37,33 +38,45 @@
   }
 }
 
-.agri-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E4E8E2;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px rgba(23, 61, 50, 0.04);
+@layer components {
+  .agri-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E4E8E2;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgba(23, 61, 50, 0.04);
+  }
+
+  .agri-input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid #E4E8E2;
+    background-color: #FFFFFF;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    color: #242B31;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .agri-input:focus {
+    outline: none;
+    border-color: #173D32;
+    box-shadow: 0 0 0 3px rgba(23, 61, 50, 0.1);
+  }
+
+  .agri-input:disabled {
+    background-color: #F4F5F1;
+    color: #718078;
+    cursor: not-allowed;
+  }
 }
 
-.agri-input {
-  width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid #E4E8E2;
-  background-color: #FFFFFF;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.875rem;
-  color: #242B31;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+/* Keep Leaflet map stacking below sticky header (z-40) and modals (z-50) */
+.leaflet-container {
+  font-family: var(--font-sans);
+  z-index: 1;
 }
 
-.agri-input:focus {
-  outline: none;
-  border-color: #173D32;
-  box-shadow: 0 0 0 3px rgba(23, 61, 50, 0.1);
+.agri-pin-icon {
+  background: transparent;
+  border: none;
 }
-
-.agri-input:disabled {
-  background-color: #F4F5F1;
-  color: #718078;
-  cursor: not-allowed;
-}
-

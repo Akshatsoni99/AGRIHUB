@@ -18,7 +18,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(
     callbackError === "auth_callback_failed"
-      ? "Email confirmation link expired or is invalid. Please sign in or request a new link."
+      ? "Authentication callback failed or expired. Please sign in with your email and password."
       : null,
   );
 

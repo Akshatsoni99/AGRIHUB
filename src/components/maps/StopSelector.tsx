@@ -122,6 +122,8 @@ export function StopSelector({
                 <LocationAutocomplete
                   id={`stop-loc-${idx}`}
                   value={stop.location_name}
+                  selectedLat={stop.lat}
+                  selectedLng={stop.lng}
                   placeholder={`Stop ${idx + 1} town or market`}
                   onChange={(loc) => updateStop(idx, loc)}
                 />

@@ -46,7 +46,6 @@ export function SignupForm() {
   const [accountType, setAccountType] = useState<AccountRole>("both");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [confirmationSent, setConfirmationSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -65,14 +64,10 @@ export function SignupForm() {
 
     setLoading(true);
     try {
-      const origin =
-        typeof window !== "undefined" ? window.location.origin : "";
-
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?next=/onboarding`,
           data: {
             full_name: fullName.trim(),
             mobile_number: mobileNumber.trim(),
@@ -89,49 +84,61 @@ export function SignupForm() {
         return;
       }
 
-      if (data.session) {
-        // Ensure profile onboarding fields are stored cleanly
-        await supabase
-          .from("profiles")
-          .update({
-            full_name: fullName.trim(),
-            city: city.trim(),
-            state: state.trim(),
-            business_name: businessName.trim() || null,
-            account_type: accountType,
-            onboarding_completed: true,
-          })
-          .eq("id", data.session.user.id);
+      let activeSession = data.session;
 
-        await supabase
-          .from("profile_private_contacts")
-          .upsert({
-            user_id: data.session.user.id,
+      // If signUp did not return an immediate session, attempt direct sign-in
+      if (!activeSession) {
+        const { data: signInData, error: signInErr } =
+          await supabase.auth.signInWithPassword({
             email: email.trim(),
-            mobile_number: mobileNumber.trim(),
+            password,
           });
-
-        toast.success("Welcome to AGRIHUB!");
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        setConfirmationSent(true);
+        if (signInErr || !signInData.session) {
+          setErrorMsg(
+            "Account created, but your Supabase project currently requires email confirmation before signing in. Disable 'Confirm email' in Supabase Dashboard -> Authentication -> Providers -> Email.",
+          );
+          return;
+        }
+        activeSession = signInData.session;
       }
+
+      // Ensure profile onboarding fields and private contact are saved
+      const { error: profileErr } = await supabase
+        .from("profiles")
+        .upsert({
+          id: activeSession.user.id,
+          full_name: fullName.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          business_name: businessName.trim() || null,
+          account_type: accountType,
+          onboarding_completed: true,
+        });
+
+      if (profileErr) {
+        setErrorMsg(profileErr.message);
+        return;
+      }
+
+      const { error: contactErr } = await supabase
+        .from("profile_private_contacts")
+        .upsert({
+          user_id: activeSession.user.id,
+          email: email.trim(),
+          mobile_number: mobileNumber.trim(),
+        });
+
+      if (contactErr) {
+        setErrorMsg(contactErr.message);
+        return;
+      }
+
+      toast.success("Account created! Welcome to AGRIHUB.");
+      router.push("/dashboard");
+      router.refresh();
     } finally {
       setLoading(false);
     }
-  }
-
-  if (confirmationSent) {
-    return (
-      <div className="rounded-xl border border-[#1F6B48]/30 bg-[#1F6B48]/10 p-5 text-sm text-[#173D32]">
-        <h2 className="font-bold">Verify your email to continue</h2>
-        <p className="mt-1.5 text-xs leading-relaxed text-[#242B31]">
-          We sent a confirmation link to <strong>{email}</strong>. Once confirmed,
-          sign in to complete onboarding and start pooling capacity.
-        </p>
-      </div>
-    );
   }
 
   return (

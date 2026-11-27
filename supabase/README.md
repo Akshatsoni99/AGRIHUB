@@ -8,6 +8,7 @@ This directory contains the PostgreSQL schema, Row Level Security (RLS) policies
 2. `migrations/0002_rls_policies.sql` — Enables RLS across all tables with strict participant/owner/admin scoping, preventing exposure of mobile numbers, vehicle registration plates, and private chats.
 3. `migrations/0003_functions_and_rpcs.sql` — Auth signup/verification triggers (`handle_new_user`, `handle_user_email_confirmed`), privileged column & capacity tamper guards, notification triggers, strict function `EXECUTE` permissions, and atomic transactional RPCs (`accept_pool_request`, `reject_pool_request`, `propose_deal_terms`, `confirm_deal_terms`, `cancel_confirmed_deal`, `update_deal_shipment_status`).
 4. `migrations/0004_realtime.sql` — Sets `REPLICA IDENTITY FULL` on `notifications` and `pool_requests` and adds `messages`, `notifications`, and `pool_requests` to `supabase_realtime`.
+5. `migrations/0005_osrm_route_source.sql` — Safely widens `pools.route_source` check constraint to permit `'osrm'` alongside `'manual'` without modifying existing data.
 
 ## Applying Migrations in a New Supabase Project
 
@@ -33,6 +34,7 @@ This directory contains the PostgreSQL schema, Row Level Security (RLS) policies
 3. Execute `0002_rls_policies.sql` second.
 4. Execute `0003_functions_and_rpcs.sql` third.
 5. Execute `0004_realtime.sql` fourth.
+6. Execute `0005_osrm_route_source.sql` fifth (safe additive update for OSRM route source tracking).
 
 ## Enabling Realtime
 

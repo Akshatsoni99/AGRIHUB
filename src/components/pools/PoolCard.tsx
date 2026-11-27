@@ -37,8 +37,8 @@ export function PoolCard({ pool, match }: PoolCardProps) {
         {/* Top Row: Vehicle + Pool Code + Status + Match Score */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#173D32]/10 text-[#173D32]">
-              <VehicleIcon category={pool.vehicle_category} className="h-5 w-5" />
+            <div className="flex h-12 w-18 shrink-0 items-center justify-center rounded-xl border border-[#E4E8E2] bg-[#F4F5F1] px-1.5 py-1">
+              <VehicleIcon category={pool.vehicle_category} className="h-9 w-15" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -92,7 +92,7 @@ export function PoolCard({ pool, match }: PoolCardProps) {
             <p className="mt-0.5 text-[10px] text-[#718078]">
               Evaluation mode:{" "}
               {match.matchMode === "geographic_route"
-                ? "Google Maps corridor coordinates"
+                ? "OpenStreetMap corridor coordinates"
                 : "Manual city & stop text fallback (not geographically verified)"}
             </p>
           </div>

@@ -96,7 +96,7 @@ export interface PoolListing {
   route_polyline: string | null;
   route_distance_meters: number | null;
   route_duration_seconds: number | null;
-  route_source: "google_routes" | "manual";
+  route_source: "osrm" | "google_routes" | "manual";
   main_cargo_category: CargoCategory;
   cargo_description: string;
   permitted_cargo_categories: CargoCategory[];

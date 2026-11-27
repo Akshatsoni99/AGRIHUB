@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
@@ -89,16 +89,21 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
   );
   const [routePreferences, setRoutePreferences] = useState("");
   const [routePolyline, setRoutePolyline] = useState<string | null>(null);
+  const [routeCoordinates, setRouteCoordinates] = useState<
+    [number, number][] | null
+  >(null);
   const [routeDistanceMeters, setRouteDistanceMeters] = useState<number | null>(
     null,
   );
   const [routeDurationSeconds, setRouteDurationSeconds] = useState<
     number | null
   >(null);
-  const [routeSource, setRouteSource] = useState<"google_routes" | "manual">(
-    "manual",
+  const [routeSource, setRouteSource] = useState<"osrm" | "manual">("manual");
+  const [routeStatusMessage, setRouteStatusMessage] = useState<string | null>(
+    null,
   );
   const [computingRoute, setComputingRoute] = useState(false);
+  const lastCalculatedSignature = useRef<string | null>(null);
 
   // Section C: Cargo Information
   const [mainCargoCategory, setMainCargoCategory] =
@@ -172,59 +177,126 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
     );
   }
 
-  async function handleComputeRoute() {
-    if (!origin.name.trim() || !destination.name.trim()) {
-      toast.error("Enter both origin and destination first.");
+  const routeWaypointSignature = useMemo(() => {
+    if (
+      origin.lat == null ||
+      origin.lng == null ||
+      destination.lat == null ||
+      destination.lng == null
+    ) {
+      return null;
+    }
+    const stopSig = stops
+      .filter((s) => s.lat != null && s.lng != null)
+      .map((s) => `${s.lat!.toFixed(5)},${s.lng!.toFixed(5)}`)
+      .join("|");
+    return `${origin.lat.toFixed(5)},${origin.lng.toFixed(5)}>${stopSig}>${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}`;
+  }, [origin.lat, origin.lng, destination.lat, destination.lng, stops]);
+
+  const computeRoadRoute = useCallback(
+    async (silent = false) => {
+      if (
+        origin.lat == null ||
+        origin.lng == null ||
+        destination.lat == null ||
+        destination.lng == null
+      ) {
+        if (!silent) {
+          toast.error(
+            "Select origin and destination from search results or pick them on the map first.",
+          );
+        }
+        return;
+      }
+
+      setComputingRoute(true);
+      setRouteStatusMessage(null);
+      try {
+        const res = await fetch("/api/routes/compute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            origin: {
+              address: origin.name,
+              lat: origin.lat,
+              lng: origin.lng,
+            },
+            destination: {
+              address: destination.name,
+              lat: destination.lat,
+              lng: destination.lng,
+            },
+            intermediates: stops
+              .filter((s) => s.lat != null && s.lng != null)
+              .map((s) => ({
+                address: s.location_name,
+                lat: s.lat!,
+                lng: s.lng!,
+              })),
+          }),
+        });
+
+        const data = await res.json();
+        if (data.routeFound && data.encodedPolyline) {
+          setRouteSource("osrm");
+          setRoutePolyline(data.encodedPolyline);
+          setRouteCoordinates(
+            Array.isArray(data.coordinates) ? data.coordinates : null,
+          );
+          setRouteDistanceMeters(data.distanceMeters ?? null);
+          setRouteDurationSeconds(data.durationSeconds ?? null);
+          setRouteStatusMessage(null);
+          if (!silent) {
+            toast.success("Road route calculated via OSRM");
+          }
+        } else {
+          setRouteSource("manual");
+          setRoutePolyline(null);
+          setRouteCoordinates(null);
+          setRouteDistanceMeters(null);
+          setRouteDurationSeconds(null);
+          const msg =
+            data.error ||
+            "No road route found between the selected points.";
+          setRouteStatusMessage(msg);
+          if (!silent) {
+            toast.error(msg);
+          }
+        }
+      } catch {
+        setRouteSource("manual");
+        setRoutePolyline(null);
+        setRouteCoordinates(null);
+        setRouteDistanceMeters(null);
+        setRouteDurationSeconds(null);
+        const msg =
+          "Public OSRM routing server is temporarily unreachable. Coordinates are still saved.";
+        setRouteStatusMessage(msg);
+        if (!silent) {
+          toast.error(msg);
+        }
+      } finally {
+        setComputingRoute(false);
+      }
+    },
+    [origin.name, origin.lat, origin.lng, destination.name, destination.lat, destination.lng, stops],
+  );
+
+  // Automatically recalculate OSRM road route when confirmed coordinates or stop order change
+  useEffect(() => {
+    if (!routeWaypointSignature) {
+      lastCalculatedSignature.current = null;
       return;
     }
-
-    setComputingRoute(true);
-    try {
-      const res = await fetch("/api/routes/compute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          origin: {
-            address: origin.name,
-            lat: origin.lat,
-            lng: origin.lng,
-          },
-          destination: {
-            address: destination.name,
-            lat: destination.lat,
-            lng: destination.lng,
-          },
-          intermediates: stops
-            .filter((s) => s.location_name.trim().length >= 2)
-            .map((s) => ({
-              address: s.location_name,
-              lat: s.lat,
-              lng: s.lng,
-            })),
-        }),
-      });
-
-      const data = await res.json();
-      if (data.routeSource === "google_routes") {
-        setRouteSource("google_routes");
-        setRoutePolyline(data.encodedPolyline || null);
-        setRouteDistanceMeters(data.distanceMeters || null);
-        setRouteDurationSeconds(data.durationSeconds || null);
-        toast.success("Route calculated via Google Routes API");
-      } else {
-        setRouteSource("manual");
-        toast.info(
-          data.message ||
-            data.error ||
-            "Using manual route coordinates (Google Routes key not configured).",
-        );
-      }
-    } catch {
-      toast.error("Could not compute route right now.");
-    } finally {
-      setComputingRoute(false);
+    if (lastCalculatedSignature.current === routeWaypointSignature) {
+      return;
     }
-  }
+    const timer = setTimeout(() => {
+      lastCalculatedSignature.current = routeWaypointSignature;
+      computeRoadRoute(true);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [routeWaypointSignature, computeRoadRoute]);
 
   function validateFormInput() {
     const cleanStops = stops.filter((s) => s.location_name.trim().length > 0);
@@ -338,53 +410,69 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
         return;
       }
 
-      // 2. Insert pool listing with status OPEN
-      const { data: poolRow, error: poolErr } = await supabase
+      // 2. Insert pool listing with status OPEN (fallback to 'manual' route_source if 0005 constraint not yet applied)
+      const basePoolPayload = {
+        pool_code: poolCode,
+        owner_id: userId,
+        vehicle_id: vehicleRow.id,
+        vehicle_category: payload.vehicle_category,
+        ownership_confirmed: true,
+        total_capacity_kg: payload.total_capacity_kg,
+        existing_occupied_kg: payload.existing_occupied_kg,
+        reserved_capacity_kg: 0,
+        origin_name: payload.origin_name,
+        origin_city: payload.origin_city,
+        origin_state: payload.origin_state,
+        origin_place_id: payload.origin_place_id,
+        origin_lat: payload.origin_lat,
+        origin_lng: payload.origin_lng,
+        destination_name: payload.destination_name,
+        destination_city: payload.destination_city,
+        destination_state: payload.destination_state,
+        destination_place_id: payload.destination_place_id,
+        destination_lat: payload.destination_lat,
+        destination_lng: payload.destination_lng,
+        departure_date: payload.departure_date,
+        departure_time: payload.departure_time,
+        estimated_arrival: payload.estimated_arrival,
+        pickup_flexibility: payload.pickup_flexibility,
+        delivery_flexibility: payload.delivery_flexibility,
+        route_preferences: payload.route_preferences,
+        route_polyline: payload.route_polyline,
+        route_distance_meters: payload.route_distance_meters,
+        route_duration_seconds: payload.route_duration_seconds,
+        route_source: payload.route_source,
+        main_cargo_category: payload.main_cargo_category,
+        cargo_description: payload.cargo_description,
+        permitted_cargo_categories: payload.permitted_cargo_categories,
+        handling_requirements: payload.handling_requirements,
+        cargo_dimensions: payload.cargo_dimensions,
+        pricing_mode: payload.pricing_mode,
+        asking_price: payload.asking_price,
+        pickup_contribution: payload.pickup_contribution,
+        commercial_terms: payload.commercial_terms,
+        status: "OPEN",
+      };
+
+      let { data: poolRow, error: poolErr } = await supabase
         .from("pools")
-        .insert({
-          pool_code: poolCode,
-          owner_id: userId,
-          vehicle_id: vehicleRow.id,
-          vehicle_category: payload.vehicle_category,
-          ownership_confirmed: true,
-          total_capacity_kg: payload.total_capacity_kg,
-          existing_occupied_kg: payload.existing_occupied_kg,
-          reserved_capacity_kg: 0,
-          origin_name: payload.origin_name,
-          origin_city: payload.origin_city,
-          origin_state: payload.origin_state,
-          origin_place_id: payload.origin_place_id,
-          origin_lat: payload.origin_lat,
-          origin_lng: payload.origin_lng,
-          destination_name: payload.destination_name,
-          destination_city: payload.destination_city,
-          destination_state: payload.destination_state,
-          destination_place_id: payload.destination_place_id,
-          destination_lat: payload.destination_lat,
-          destination_lng: payload.destination_lng,
-          departure_date: payload.departure_date,
-          departure_time: payload.departure_time,
-          estimated_arrival: payload.estimated_arrival,
-          pickup_flexibility: payload.pickup_flexibility,
-          delivery_flexibility: payload.delivery_flexibility,
-          route_preferences: payload.route_preferences,
-          route_polyline: payload.route_polyline,
-          route_distance_meters: payload.route_distance_meters,
-          route_duration_seconds: payload.route_duration_seconds,
-          route_source: payload.route_source,
-          main_cargo_category: payload.main_cargo_category,
-          cargo_description: payload.cargo_description,
-          permitted_cargo_categories: payload.permitted_cargo_categories,
-          handling_requirements: payload.handling_requirements,
-          cargo_dimensions: payload.cargo_dimensions,
-          pricing_mode: payload.pricing_mode,
-          asking_price: payload.asking_price,
-          pickup_contribution: payload.pickup_contribution,
-          commercial_terms: payload.commercial_terms,
-          status: "OPEN",
-        })
+        .insert(basePoolPayload)
         .select("id, pool_code")
         .single();
+
+      if (
+        poolErr &&
+        payload.route_source === "osrm" &&
+        poolErr.message.includes("pools_route_source_check")
+      ) {
+        const retry = await supabase
+          .from("pools")
+          .insert({ ...basePoolPayload, route_source: "manual" })
+          .select("id, pool_code")
+          .single();
+        poolRow = retry.data;
+        poolErr = retry.error;
+      }
 
       if (poolErr || !poolRow) {
         setFormError(poolErr?.message || "Failed to publish pool.");
@@ -604,7 +692,7 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
           </div>
           <button
             type="button"
-            onClick={handleComputeRoute}
+            onClick={() => computeRoadRoute(false)}
             disabled={computingRoute}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[#173D32] bg-white px-3.5 py-2 text-xs font-semibold text-[#173D32] hover:bg-[#F4F5F1] disabled:opacity-60"
           >
@@ -613,7 +701,7 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
             ) : (
               <Navigation className="h-3.5 w-3.5" />
             )}
-            Calculate Route Preview
+            {computingRoute ? "Calculating Road Route..." : "Calculate Road Route"}
           </button>
         </div>
 
@@ -622,33 +710,73 @@ export function CreatePoolForm({ userId, profile }: CreatePoolFormProps) {
             id="pool-origin"
             label="Origin Location *"
             value={origin.name}
-            placeholder="e.g. Nashik APMC Market, Maharashtra"
+            selectedLat={origin.lat}
+            selectedLng={origin.lng}
+            placeholder="Search town/mandi or click Map to pin"
             required
-            onChange={(loc) => setOrigin(loc)}
+            onChange={(loc) => {
+              setOrigin(loc);
+              if (loc.lat == null || loc.lng == null) {
+                setRoutePolyline(null);
+                setRouteCoordinates(null);
+                setRouteDistanceMeters(null);
+                setRouteDurationSeconds(null);
+                setRouteSource("manual");
+              }
+            }}
           />
           <LocationAutocomplete
             id="pool-destination"
             label="Destination Location *"
             value={destination.name}
-            placeholder="e.g. Pune Market Yard, Maharashtra"
+            selectedLat={destination.lat}
+            selectedLng={destination.lng}
+            placeholder="Search destination or click Map to pin"
             required
-            onChange={(loc) => setDestination(loc)}
+            onChange={(loc) => {
+              setDestination(loc);
+              if (loc.lat == null || loc.lng == null) {
+                setRoutePolyline(null);
+                setRouteCoordinates(null);
+                setRouteDistanceMeters(null);
+                setRouteDurationSeconds(null);
+                setRouteSource("manual");
+              }
+            }}
           />
         </div>
 
-        <StopSelector stops={stops} onChange={setStops} />
+        <StopSelector
+          stops={stops}
+          onChange={(nextStops) => {
+            setStops(nextStops);
+            setRoutePolyline(null);
+            setRouteCoordinates(null);
+            setRouteDistanceMeters(null);
+            setRouteDurationSeconds(null);
+          }}
+        />
+
+        {routeStatusMessage && (
+          <div className="flex items-start gap-2 rounded-lg border border-[#D5A45B]/50 bg-[#D5A45B]/15 px-3.5 py-2.5 text-xs text-[#7A5416]">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{routeStatusMessage}</span>
+          </div>
+        )}
 
         <RouteSummary
           distanceMeters={routeDistanceMeters}
           durationSeconds={routeDurationSeconds}
           routeSource={routeSource}
+          hasRoadPolyline={Boolean(routePolyline)}
           stopCount={stops.filter((s) => s.location_name.trim()).length}
         />
 
         <RouteMap
           waypoints={mapWaypoints}
           encodedPolyline={routePolyline}
-          heightClassName="h-64 sm:h-72"
+          routeCoordinates={routeCoordinates}
+          heightClassName="h-72 sm:h-80"
         />
 
         <div className="grid gap-4 sm:grid-cols-3">

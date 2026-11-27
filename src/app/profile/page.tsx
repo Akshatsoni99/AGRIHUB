@@ -123,7 +123,7 @@ export default async function ProfilePage() {
                     Status:{" "}
                     {ctx.profile?.verification_status === "email_verified"
                       ? "Email Verified (Not Gov ID Verified)"
-                      : "Unverified Email"}
+                      : "Standard Account"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

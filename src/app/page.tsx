@@ -41,20 +41,20 @@ export default function LandingPage() {
               logistics network.
             </p>
 
-            <div className="flex flex-wrap items-center gap-3.5 pt-1">
+            <div className="flex flex-col gap-3.5 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               <Link
                 href="/truck-pool/find"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#173D32] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#244638]"
+                className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-[#173D32] px-7 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#244638] focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2 active:scale-[0.99] sm:w-auto"
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-5 w-5" />
                 Find a Pool
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-5 w-5" />
               </Link>
               <Link
                 href="/truck-pool/create"
-                className="inline-flex items-center gap-2 rounded-lg border border-[#173D32] bg-white px-6 py-3 text-sm font-semibold text-[#173D32] transition hover:bg-[#F4F5F1]"
+                className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border-2 border-[#173D32] bg-white px-7 py-4 text-base font-bold text-[#173D32] shadow-sm transition hover:bg-[#F4F5F1] focus:outline-none focus:ring-2 focus:ring-[#173D32] focus:ring-offset-2 active:scale-[0.99] sm:w-auto"
               >
-                <PlusCircle className="h-4 w-4" />
+                <PlusCircle className="h-5 w-5" />
                 Create a Pool
               </Link>
             </div>
@@ -168,13 +168,13 @@ export default function LandingPage() {
               <Link
                 key={cat.id}
                 href={`/truck-pool/find?vehicle=${cat.id}`}
-                className="agri-card group flex flex-col justify-between p-5 transition hover:border-[#173D32]/40"
+                className="agri-card group flex flex-col justify-between p-5 transition hover:border-[#173D32]/50 hover:shadow-md"
               >
                 <div>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F4F5F1] text-[#173D32] group-hover:bg-[#173D32] group-hover:text-white transition">
-                    <VehicleIcon category={cat.id} className="h-5 w-5" />
+                  <div className="flex h-20 w-full items-center justify-center rounded-xl bg-[#F4F5F1] p-2.5 transition group-hover:bg-[#173D32]/5">
+                    <VehicleIcon category={cat.id} className="h-14 w-24" />
                   </div>
-                  <h3 className="mt-3.5 text-base font-bold text-[#242B31]">
+                  <h3 className="mt-4 text-base font-bold text-[#242B31]">
                     {cat.label}
                   </h3>
                   <p className="mt-1 text-xs font-semibold text-[#D5A45B]">

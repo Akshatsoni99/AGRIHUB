@@ -28,19 +28,16 @@ export function SetupBanner({
             </div>
             <pre className="overflow-x-auto font-mono leading-relaxed text-[#242B31]">
 {`NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-anon-key
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=optional-browser-maps-key
-GOOGLE_MAPS_ROUTES_API_KEY=optional-server-routes-key`}
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-anon-key`}
             </pre>
           </div>
           <p className="text-xs text-[#718078]">
             After configuring <code className="rounded bg-[#F4F5F1] px-1 py-0.5">.env.local</code>, apply the SQL migrations inside{" "}
             <code className="rounded bg-[#F4F5F1] px-1 py-0.5">supabase/migrations/</code> as documented in{" "}
-            <code className="rounded bg-[#F4F5F1] px-1 py-0.5">supabase/README.md</code>.
+            <code className="rounded bg-[#F4F5F1] px-1 py-0.5">supabase/README.md</code>. Maps and road routing use free OpenStreetMap &amp; OSRM services with no API key required.
           </p>
         </div>
       </div>
     </div>
   );
 }
-
